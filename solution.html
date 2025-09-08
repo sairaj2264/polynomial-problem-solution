@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lagrange Interpolation Calculator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: #333;
+        overflow-x: hidden;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+        position: relative;
+      }
+
+      .header::before {
+        content: "";
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 4px;
+        background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1);
+        border-radius: 2px;
+      }
+
+      h1 {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        margin-bottom: 0.5rem;
+        animation: fadeInUp 1s ease-out;
+      }
+
+      .subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        font-weight: 300;
+        animation: fadeInUp 1s ease-out 0.2s both;
+      }
+
+      .main-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        flex: 1;
+      }
+
+      .input-section,
+      .output-section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: fadeInUp 1s ease-out 0.4s both;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      .input-section:hover,
+      .output-section:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        color: #2c3e50;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .section-title::before {
+        content: "⚡";
+        font-size: 1.2rem;
+      }
+
+      .input-methods {
+        margin-bottom: 1.5rem;
+      }
+
+      .method-option {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: rgba(103, 126, 234, 0.05);
+        border: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .method-option:hover {
+        background: rgba(103, 126, 234, 0.1);
+        border-color: rgba(103, 126, 234, 0.3);
+        transform: translateX(5px);
+      }
+
+      .method-option.active {
+        background: rgba(103, 126, 234, 0.15);
+        border-color: #667eea;
+      }
+
+      .method-option input[type="radio"] {
+        margin-right: 1rem;
+        scale: 1.2;
+        accent-color: #667eea;
+      }
+
+      .method-option label {
+        cursor: pointer;
+        font-weight: 500;
+      }
+
+      .input-area {
+        margin-top: 1.5rem;
+      }
+
+      .file-input-group {
+        position: relative;
+        margin-bottom: 1rem;
+      }
+
+      .file-input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px dashed #667eea;
+        border-radius: 12px;
+        background: rgba(103, 126, 234, 0.05);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .file-input:hover {
+        background: rgba(103, 126, 234, 0.1);
+        border-color: #4c63d2;
+      }
+
+      .json-textarea {
+        width: 100%;
+        min-height: 200px;
+        padding: 1rem;
+        border: 2px solid #e1e8ed;
+        border-radius: 12px;
+        font-family: "Monaco", "Menlo", monospace;
+        font-size: 0.9rem;
+        resize: vertical;
+        background: rgba(255, 255, 255, 0.9);
+        transition: all 0.3s ease;
+      }
+
+      .json-textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(103, 126, 234, 0.1);
+      }
+
+      .calculate-btn {
+        width: 100%;
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .calculate-btn::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      .calculate-btn:hover::before {
+        left: 100%;
+      }
+
+      .calculate-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(103, 126, 234, 0.4);
+      }
+
+      .calculate-btn:disabled {
+        background: #bdc3c7;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+
+      .output-content {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        min-height: 300px;
+        font-family: "Monaco", "Menlo", monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-y: auto;
+        border: 2px solid #e9ecef;
+      }
+
+      .result-highlight {
+        background: linear-gradient(135deg, #2ecc71, #27ae60);
+        color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        text-align: center;
+        font-weight: 600;
+        animation: pulse 2s infinite;
+      }
+
+      .error {
+        color: #e74c3c;
+        background: rgba(231, 76, 60, 0.1);
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #e74c3c;
+      }
+
+      .success {
+        color: #27ae60;
+      }
+
+      .points-visualization {
+        margin-top: 1rem;
+        padding: 1rem;
+        background: rgba(116, 75, 162, 0.05);
+        border-radius: 8px;
+        border-left: 4px solid #764ba2;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .main-content {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
+
+        h1 {
+          font-size: 2rem;
+        }
+
+        .input-section,
+        .output-section {
+          padding: 1.5rem;
+        }
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 1s ease-in-out infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Lagrange Interpolation Calculator</h1>
+        <p class="subtitle">
+          Find polynomial constants using advanced mathematical interpolation
+        </p>
+      </div>
+
+      <div class="main-content">
+        <div class="input-section">
+          <h2 class="section-title">Input Data</h2>
+
+          <div class="input-methods">
+            <div class="method-option active" onclick="selectMethod('file')">
+              <input
+                type="radio"
+                id="method-file"
+                name="inputMethod"
+                value="file"
+                checked
+              />
+              <label for="method-file">📁 Upload JSON File</label>
+            </div>
+            <div class="method-option" onclick="selectMethod('json')">
+              <input
+                type="radio"
+                id="method-json"
+                name="inputMethod"
+                value="json"
+              />
+              <label for="method-json">📝 Paste JSON Content</label>
+            </div>
+          </div>
+
+          <div class="input-area">
+            <div id="file-input-area" class="file-input-group">
+              <input
+                type="file"
+                id="jsonFile"
+                accept=".json"
+                style="display: none"
+                onchange="handleFileSelect(event)"
+              />
+              <div
+                class="file-input"
+                onclick="document.getElementById('jsonFile').click()"
+              >
+                <div id="file-status">📤 Click to select JSON file</div>
+              </div>
+            </div>
+
+            <div id="json-input-area" class="hidden">
+              <textarea
+                id="jsonTextarea"
+                class="json-textarea"
+                placeholder='Paste your JSON data here...
+
+Example format:
+{
+  "keys": {"n": 4, "k": 3},
+  "1": {"base": "10", "value": "4"},
+  "2": {"base": "2", "value": "111"},
+  "3": {"base": "10", "value": "12"}
+}'
+              ></textarea>
+            </div>
+          </div>
+
+          <button class="calculate-btn" onclick="calculateConstant()">
+            <span id="btn-text">🚀 Calculate Constant</span>
+          </button>
+        </div>
+
+        <div class="output-section">
+          <h2 class="section-title">Results</h2>
+          <div id="output" class="output-content">
+            <div style="text-align: center; color: #7f8c8d; margin-top: 2rem">
+              <div style="font-size: 3rem; margin-bottom: 1rem">🔬</div>
+              <p>Ready to process your data...</p>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem">
+                Upload a JSON file or paste JSON content to begin calculation.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let currentData = null;
+
+      function selectMethod(method) {
+        // Update radio buttons
+        document
+          .querySelectorAll('input[name="inputMethod"]')
+          .forEach((radio) => {
+            radio.checked = radio.value === method;
+          });
+
+        // Update visual selection
+        document.querySelectorAll(".method-option").forEach((option) => {
+          option.classList.remove("active");
+        });
+        document
+          .querySelector(`input[value="${method}"]`)
+          .closest(".method-option")
+          .classList.add("active");
+
+        // Show/hide input areas
+        if (method === "file") {
+          document.getElementById("file-input-area").classList.remove("hidden");
+          document.getElementById("json-input-area").classList.add("hidden");
+        } else {
+          document.getElementById("file-input-area").classList.add("hidden");
+          document.getElementById("json-input-area").classList.remove("hidden");
+        }
+      }
+
+      function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const fileStatus = document.getElementById("file-status");
+        fileStatus.innerHTML = `📄 ${file.name} <span style="color: #667eea;">(Loading...)</span>`;
+
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            currentData = JSON.parse(e.target.result);
+            fileStatus.innerHTML = `✅ ${file.name} <span style="color: #27ae60;">(Loaded)</span>`;
+          } catch (error) {
+            fileStatus.innerHTML = `❌ ${file.name} <span style="color: #e74c3c;">(Invalid JSON)</span>`;
+            currentData = null;
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function calculateConstant() {
+        const btnText = document.getElementById("btn-text");
+        const output = document.getElementById("output");
+
+        // Show loading state
+        btnText.innerHTML = '<span class="loading"></span> Calculating...';
+        document.querySelector(".calculate-btn").disabled = true;
+
+        setTimeout(() => {
+          try {
+            let jsonData;
+            const selectedMethod = document.querySelector(
+              'input[name="inputMethod"]:checked'
+            ).value;
+
+            if (selectedMethod === "file") {
+              if (!currentData) {
+                throw new Error("No file selected or file is invalid");
+              }
+              jsonData = currentData;
+            } else {
+              const jsonText = document
+                .getElementById("jsonTextarea")
+                .value.trim();
+              if (!jsonText) {
+                throw new Error("No JSON content provided");
+              }
+              jsonData = JSON.parse(jsonText);
+            }
+
+            // Process the data
+            const result = processLagrangeInterpolation(jsonData);
+            displayResult(result);
+          } catch (error) {
+            displayError(error.message);
+          } finally {
+            // Reset button
+            btnText.innerHTML = "🚀 Calculate Constant";
+            document.querySelector(".calculate-btn").disabled = false;
+          }
+        }, 500); // Small delay for better UX
+      }
+
+      function processLagrangeInterpolation(data) {
+        let output = "🔍 Starting Lagrange Interpolation Calculation...\n\n";
+
+        // Step 1: Decode the data
+        output += "📊 Step 1: Decoding JSON data...\n";
+
+        if (!data.keys || !data.keys.k) {
+          throw new Error("Invalid JSON structure: missing keys.k");
+        }
+
+        const k = data.keys.k;
+        const points = [];
+
+        output += `Required points (k): ${k}\n\n`;
+
+        // Decode points
+        for (const key in data) {
+          if (!isNaN(key)) {
+            const pointData = data[key];
+            const x = parseInt(key, 10);
+            const base = parseInt(pointData.base, 10);
+            const valueStr = pointData.value;
+            const y = parseInt(valueStr, base);
+            points.push({ x, y });
+
+            output += `Point ${x}: base-${base} value "${valueStr}" = ${y} (decimal)\n`;
+          }
+        }
+
+        if (points.length < k) {
+          throw new Error(`Not enough points: need ${k}, got ${points.length}`);
+        }
+
+        output += `\n✅ Successfully decoded ${points.length} points\n\n`;
+
+        // Step 2: Lagrange Interpolation
+        output += "🧮 Step 2: Applying Lagrange Interpolation...\n";
+        output += `Using first ${k} points for calculation:\n`;
+
+        const selectedPoints = points.slice(0, k);
+        selectedPoints.forEach((point, i) => {
+          output += `  Point ${i + 1}: (${point.x}, ${point.y})\n`;
+        });
+
+        output += "\n🔬 Calculating constant term C = P(0)...\n";
+        output +=
+          "Formula: C = Σ [y_j * L_j(0)] where L_j(0) = Π [x_i / (x_i - x_j)]\n\n";
+
+        let constantC = 0.0;
+
+        // Calculate each term
+        for (let j = 0; j < selectedPoints.length; j++) {
+          const y_j = selectedPoints[j].y;
+          const x_j = selectedPoints[j].x;
+
+          let lagrangeBasis = 1.0;
+          let basisTerms = [];
+
+          for (let i = 0; i < selectedPoints.length; i++) {
+            if (i === j) continue;
+
+            const x_i = selectedPoints[i].x;
+            const term = x_i / (x_i - x_j);
+            lagrangeBasis *= term;
+            basisTerms.push(`${x_i}/(${x_i}-${x_j}) = ${term.toFixed(6)}`);
+          }
+
+          const contribution = y_j * lagrangeBasis;
+          constantC += contribution;
+
+          output += `Term ${j + 1}: y_${j} = ${y_j}, x_${j} = ${x_j}\n`;
+          output += `  L_${j}(0) = ${basisTerms.join(" × ")}\n`;
+          output += `  L_${j}(0) = ${lagrangeBasis.toFixed(8)}\n`;
+          output += `  Contribution: ${y_j} × ${lagrangeBasis.toFixed(
+            8
+          )} = ${contribution.toFixed(8)}\n\n`;
+        }
+
+        output += `📊 Final Calculation:\n`;
+        output += `C = ${constantC.toFixed(10)}\n`;
+
+        return {
+          success: true,
+          constant: constantC,
+          output: output,
+          points: selectedPoints,
+          k: k,
+        };
+      }
+
+      function displayResult(result) {
+        const output = document.getElementById("output");
+
+        if (result.success) {
+          output.innerHTML = `
+                    <div class="success">
+                        ${result.output}
+                    </div>
+                    <div class="result-highlight">
+                        🎯 The constant term of the polynomial is: ${
+                          result.constant
+                        }
+                    </div>
+                    <div class="points-visualization">
+                        <strong>📈 Points Used in Calculation:</strong><br>
+                        ${result.points
+                          .map((p, i) => `Point ${i + 1}: (${p.x}, ${p.y})`)
+                          .join("<br>")}
+                        <br><br>
+                        <strong>🎲 Polynomial Degree:</strong> ${result.k - 1}
+                    </div>
+                `;
+        }
+      }
+
+      function displayError(message) {
+        const output = document.getElementById("output");
+        output.innerHTML = `
+                <div class="error">
+                    <strong>❌ Error:</strong><br>
+                    ${message}
+                    <br><br>
+                    <strong>💡 Tips:</strong>
+                    <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                        <li>Ensure your JSON follows the correct structure</li>
+                        <li>Check that all base values are valid numbers</li>
+                        <li>Verify that you have enough points (at least k points)</li>
+                    </ul>
+                </div>
+            `;
+      }
+    </script>
+  </body>
+</html>
