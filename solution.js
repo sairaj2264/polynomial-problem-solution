@@ -18,6 +18,25 @@ function askQuestion(query, rl) {
 }
 
 /**
+ * Parses a string representation of a number in a given base into a BigInt.
+ * This is necessary because BigInt() does not natively support a radix parameter.
+ * @param {string} str - The string to parse (e.g., "111").
+ * @param {number} base - The base of the number (e.g., 2).
+ * @returns {BigInt} The parsed BigInt value.
+ */
+function parseBigInt(str, base) {
+  let result = 0n;
+  const bigBase = BigInt(base);
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    // parseInt can handle up to base 36 for character-to-digit conversion
+    const digit = parseInt(char, 36);
+    result = result * bigBase + BigInt(digit);
+  }
+  return result;
+}
+
+/**
  * --- Step 1 (New): Get Input from User ---
  * This function prompts the user to choose an input method and returns the parsed JSON data.
  * @returns {Promise<object|null>} A promise that resolves with the parsed JSON object or null on error.
@@ -88,6 +107,7 @@ async function getInputData() {
 /**
  * --- Step 2: Decode the base-n values into points ---
  * This function takes the parsed JSON object and prepares the data for interpolation.
+ * It uses BigInt to handle potentially very large numbers.
  * @param {object} data - The parsed JSON data.
  * @returns {object|null} An object containing k and the list of decoded points.
  */
@@ -101,10 +121,10 @@ function decodeFromJSON(data) {
     for (const key in data) {
       if (!isNaN(key)) {
         const pointData = data[key];
-        const x = parseInt(key, 10);
+        const x = BigInt(key); // Use BigInt for x-coordinates
         const base = parseInt(pointData.base, 10);
         const valueStr = pointData.value;
-        const y = parseInt(valueStr, base);
+        const y = parseBigInt(valueStr, base); // Use helper to parse y into BigInt
         points.push({ x, y });
       }
     }
@@ -118,50 +138,48 @@ function decodeFromJSON(data) {
 }
 
 /**
- * --- Step 3: Find the constant using Lagrange Interpolation ---
- * The constant term 'C' of a polynomial P(x) is the value of P(0).
+ * --- Step 3: Find the constant using Lagrange Interpolation with BigInt ---
+ * This version uses BigInt for all calculations to ensure precision with large numbers.
  *
- * Formula: C = P(0) = Σ [y_j * L_j(0)]  (from j=0 to k-1)
- * where L_j(0) is the Lagrange basis polynomial evaluated at x=0.
- *
- * L_j(0) = Π [ (0 - x_i) / (x_j - x_i) ] (from i=0 to k-1, where i != j)
- * This simplifies to: Π [ x_i / (x_i - x_j) ]
- *
- * @param {Array<object>} allPoints - Array of all available {x, y} points.
+ * @param {Array<object>} allPoints - Array of all available {x, y} points as BigInts.
  * @param {number} k - The number of points required to solve the polynomial.
- * @returns {number} The calculated constant term C.
+ * @returns {BigInt} The calculated constant term C as a BigInt.
  */
 function findConstantWithLagrange(allPoints, k) {
   console.log(`\nStep 3: Calculating constant with Lagrange on ${k} points...`);
 
-  // As per the problem, we only need 'k' points to solve.
-  // We will select the first 'k' points from the decoded list.
   const selectedPoints = allPoints.slice(0, k);
-  console.log("Using points:", selectedPoints);
+  console.log("Using points:", selectedPoints.map(p => ({ x: p.x.toString(), y: p.y.toString() })));
 
-  let constantC = 0.0;
+  let constantC = 0n; // Use BigInt literal for zero
 
   // Outer loop for the Summation (Σ) over each point j
   for (let j = 0; j < selectedPoints.length; j++) {
     const y_j = selectedPoints[j].y;
     const x_j = selectedPoints[j].x;
 
-    let lagrangeBasis = 1.0; // This will hold the product value for L_j(0)
+    // To avoid issues with fractional results in BigInt division, we calculate
+    // the numerator and denominator of each term separately.
+    let termNumerator = y_j;
+    let termDenominator = 1n;
 
     // Inner loop for the Product (Π) over each point i
     for (let i = 0; i < selectedPoints.length; i++) {
       if (i === j) {
         continue;
       }
-
       const x_i = selectedPoints[i].x;
-
-      // Calculate the term for the product: x_i / (x_i - x_j)
-      lagrangeBasis *= x_i / (x_i - x_j);
+      
+      // Multiply the numerator of L_j(0) -> Π(x_i)
+      termNumerator *= x_i;
+      
+      // Multiply the denominator of L_j(0) -> Π(x_i - x_j)
+      termDenominator *= x_i - x_j;
     }
 
-    // Add the calculated term y_j * L_j(0) to our total sum
-    constantC += y_j * lagrangeBasis;
+    // Add the calculated term (numerator / denominator) to our total sum.
+    // BigInt division truncates, which is correct here as each term should be an integer.
+    constantC += termNumerator / termDenominator;
   }
 
   return constantC;
@@ -185,7 +203,7 @@ async function main() {
     }
 
     console.log("Decoding complete.");
-    console.log("Decoded Points:", processedData.points);
+    console.log("Decoded Points:", processedData.points.map(p => ({ x: p.x.toString(), y: p.y.toString() })));
 
     if (processedData.points.length < processedData.k) {
       console.error(
@@ -197,6 +215,7 @@ async function main() {
         processedData.k
       );
       console.log(`\nCalculation complete.`);
+      // The result is a BigInt, which console.log handles correctly.
       console.log(`The constant term of the polynomial (C) is: ${constant}`);
     }
   } catch (error) {
@@ -205,3 +224,4 @@ async function main() {
 }
 
 main();
+
